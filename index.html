@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gourmet Voyage · Recipe Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+        "firebase/analytics": "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js"
+      }
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(145deg, #fdf2f8 0%, #f3e8ff 40%, #e0f2fe 100%);
+      color: #3b2f4a; min-height: 100vh; line-height: 1.5;
+      padding: 2rem 1rem;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 32px;
+      box-shadow: 0 12px 32px -12px rgba(180, 150, 200, 0.3);
+      position: relative; z-index: 1;
+    }
+    .gradient-text {
+      background: linear-gradient(120deg, #d8b4fe, #a5b4fc, #7dd3fc);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; font-weight: 700;
+    }
+    .app-container { max-width: 1400px; margin: 0 auto; }
+
+    /* AUTH WALL */
+    .auth-wall {
+      position: fixed; inset: 0;
+      background: linear-gradient(145deg, #fdf2f8 0%, #f3e8ff 50%, #e0f2fe 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 5000; padding: 1.5rem;
+      transition: opacity 0.4s, visibility 0.4s;
+    }
+    .auth-wall.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .auth-wall-card { width: 100%; max-width: 420px; padding: 2.5rem 2rem; text-align: center; }
+    .auth-wall-card .logo-large {
+      font-size: 2.4rem; display: flex; align-items: center;
+      justify-content: center; gap: 0.8rem; margin-bottom: 0.5rem;
+    }
+    .auth-wall-card .logo-large i {
+      background: linear-gradient(135deg, #c4b5fd, #93c5fd);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; font-size: 2.6rem;
+    }
+    .auth-wall-card .subtitle { color: #9d8ab0; font-size: 0.9rem; margin-bottom: 2rem; }
+    .auth-wall-card h2 { font-size: 1.4rem; margin-bottom: 1.5rem; font-weight: 500; }
+    .auth-wall-card .form-group { text-align: left; }
+    .auth-wall-card .btn { width: 100%; justify-content: center; margin-top: 0.8rem; }
+    .auth-wall-card .toggle-auth { margin-top: 1.5rem; }
+
+    /* HEADER */
+    .app-header {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      align-items: center; padding: 0.8rem 2rem; margin-bottom: 2rem;
+      border-radius: 60px; position: relative; z-index: 10;
+    }
+    .logo { display: flex; align-items: center; gap: 0.8rem; font-size: 1.7rem; letter-spacing: -0.02em; }
+    .logo i {
+      background: linear-gradient(135deg, #c4b5fd, #93c5fd);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; font-size: 2rem;
+    }
+    .auth-area { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; position: relative; z-index: 11; }
+    .user-badge {
+      display: flex; align-items: center; gap: 0.6rem;
+      background: rgba(255,255,255,0.6); padding: 0.5rem 1.2rem;
+      border-radius: 40px; font-size: 0.95rem;
+      border: 1px solid rgba(255,255,255,0.9);
+    }
+    .btn {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 40px; padding: 0.6rem 1.4rem;
+      font-weight: 500; font-size: 0.9rem; color: #4a3f5e;
+      cursor: pointer; transition: all 0.2s ease;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      backdrop-filter: blur(8px); pointer-events: auto;
+      position: relative; z-index: 2;
+    }
+    .btn:hover {
+      background: rgba(255,255,255,0.95); transform: translateY(-1px);
+      box-shadow: 0 8px 20px -8px rgba(160, 140, 200, 0.4);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #c4b5fd, #93c5fd);
+      border: none; color: #3b2f4a; font-weight: 600;
+      box-shadow: 0 8px 20px -8px #c4b5fd;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #b8a6fc, #89baf8);
+      box-shadow: 0 12px 24px -8px #b8a6fc;
+    }
+
+    /* CUISINE RIBBON */
+    .cuisine-ribbon {
+      padding: 0.9rem 2rem; margin-bottom: 2.2rem;
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 0.8rem 1.8rem; border-radius: 80px;
+      justify-content: space-between; position: relative; z-index: 5;
+    }
+    .cuisine-tabs { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .cuisine-tab {
+      padding: 0.45rem 1.2rem; border-radius: 40px;
+      background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.9);
+      font-size: 0.9rem; cursor: pointer; transition: all 0.15s;
+      white-space: nowrap; color: #6b5b7e;
+      position: relative; z-index: 2; user-select: none;
+    }
+    .cuisine-tab:hover { background: rgba(255,255,255,0.9); }
+    .cuisine-tab.active {
+      background: linear-gradient(135deg, #d8b4fe, #a5b4fc);
+      color: #3b2f4a; border-color: transparent; font-weight: 600;
+      box-shadow: 0 6px 14px -6px #c4b5fd;
+    }
+    .search-box {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 40px; padding: 0.2rem 0.2rem 0.2rem 1.2rem;
+      backdrop-filter: blur(8px); position: relative; z-index: 2;
+    }
+    .search-box input {
+      background: transparent; border: none;
+      padding: 0.6rem 0.5rem; color: #3b2f4a;
+      font-size: 0.9rem; outline: none; width: 200px;
+    }
+    .search-box input::placeholder { color: #b0a0c0; }
+    .search-box button {
+      background: transparent; border: none;
+      color: #9d8ab0; font-size: 1.1rem; cursor: pointer;
+      padding: 0.4rem 0.8rem; border-radius: 30px;
+    }
+
+    /* MAIN LAYOUT */
+    .main-grid {
+      display: grid; grid-template-columns: 1fr 340px;
+      gap: 1.8rem; align-items: start;
+    }
+    @media (max-width: 950px) { .main-grid { grid-template-columns: 1fr; } }
+    .feed-section { display: flex; flex-direction: column; gap: 1.8rem; }
+    .section-title {
+      display: flex; justify-content: space-between;
+      align-items: baseline; padding: 0 0.2rem;
+    }
+    .section-title h2 { font-weight: 500; font-size: 1.5rem; letter-spacing: -0.01em; }
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .recipe-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 1.2rem 1.1rem 1.3rem;
+      border: 1px solid rgba(255,255,255,0.9);
+      transition: transform 0.18s, box-shadow 0.18s;
+      box-shadow: 0 8px 20px -12px rgba(180, 150, 200, 0.3);
+      display: flex; flex-direction: column; gap: 0.7rem;
+      height: fit-content;
+    }
+    .recipe-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 32px -16px rgba(180, 150, 200, 0.5);
+    }
+    .recipe-img {
+      width: 100%; height: 160px; border-radius: 18px;
+      background-size: cover; background-position: center;
+      background-color: #e9dff5;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+      position: relative;
+    }
+    .recipe-img-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      color: #c4b5fd; font-size: 2rem;
+      background: linear-gradient(145deg, #ede4f8, #e0d4f0);
+    }
+    .recipe-title {
+      font-weight: 600; font-size: 1.08rem; line-height: 1.3;
+      letter-spacing: -0.01em;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;
+    }
+    .cuisine-badge {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.03em;
+      background: rgba(196, 181, 253, 0.4); padding: 0.25rem 0.7rem;
+      border-radius: 30px; font-weight: 600;
+      border: 1px solid rgba(196, 181, 253, 0.6);
+      color: #6b5b8a; white-space: nowrap; flex-shrink: 0;
+    }
+    .recipe-desc {
+      font-size: 0.83rem; color: #7a6b8e;
+      display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .recipe-meta {
+      font-size: 0.7rem; color: #a090b8;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .recipe-rating {
+      display: flex; align-items: center; gap: 0.3rem;
+      color: #f0b860; font-weight: 600;
+    }
+    .recipe-rating .stars { letter-spacing: 1px; }
+    .recipe-rating .count { color: #a090b8; font-weight: 400; font-size: 0.65rem; }
+    .recipe-actions { display: flex; gap: 0.5rem; margin-top: 0.2rem; }
+    .recipe-actions .btn-small {
+      flex: 1; padding: 0.4rem; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 500;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(200, 180, 230, 0.5);
+      color: #6b5b7e; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+    }
+    .recipe-actions .btn-small:hover { background: white; }
+
+    /* EXPANDABLE DETAIL */
+    .recipe-detail-toggle {
+      background: linear-gradient(135deg, rgba(216,180,254,0.4), rgba(165,180,252,0.4));
+      border: 1px solid rgba(196,181,253,0.6);
+      border-radius: 14px; padding: 0.5rem;
+      font-size: 0.75rem; font-weight: 600; color: #6b5b8a;
+      cursor: pointer; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      transition: background 0.15s;
+    }
+    .recipe-detail-toggle:hover { background: linear-gradient(135deg, rgba(216,180,254,0.7), rgba(165,180,252,0.7)); }
+    .recipe-detail {
+      display: none;
+      border-top: 1px solid rgba(200, 180, 230, 0.3);
+      padding-top: 0.8rem;
+      margin-top: 0.2rem;
+      font-size: 0.8rem;
+      color: #5a4b6e;
+      animation: fadeIn 0.2s ease;
+    }
+    .recipe-detail.open { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .recipe-detail h4 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #9d8ab0; margin: 0.6rem 0 0.3rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .recipe-detail h4:first-child { margin-top: 0; }
+    .recipe-detail ul, .recipe-detail ol {
+      padding-left: 1.2rem; margin-bottom: 0.4rem;
+    }
+    .recipe-detail li { margin-bottom: 0.25rem; line-height: 1.4; }
+    .recipe-detail .source-credit {
+      font-size: 0.68rem; color: #a090b8; font-style: italic;
+      margin-top: 0.6rem; padding-top: 0.5rem;
+      border-top: 1px dashed rgba(200,180,230,0.4);
+    }
+
+    /* COMMENTS */
+    .recipe-comments-preview {
+      font-size: 0.72rem; color: #9d8ab0;
+      border-top: 1px solid rgba(200, 180, 230, 0.3);
+      padding-top: 0.5rem; margin-top: 0.2rem;
+    }
+    .comment-item {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(200, 180, 230, 0.2);
+      display: flex; gap: 0.4rem; align-items: flex-start;
+    }
+    .comment-item:last-child { border-bottom: none; }
+    .comment-item .c-author { font-weight: 600; color: #6b5b8a; }
+    .comment-item .c-text { color: #7a6b8e; }
+    .comment-form-inline { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+    .comment-form-inline input {
+      flex: 1; padding: 0.35rem 0.7rem; border-radius: 20px;
+      border: 1px solid rgba(200, 180, 230, 0.6);
+      background: rgba(255,255,255,0.8); font-size: 0.72rem;
+      color: #3b2f4a; outline: none; font-family: inherit;
+    }
+    .comment-form-inline input::placeholder { color: #b8a8c8; }
+    .comment-form-inline button {
+      padding: 0.35rem 0.8rem; border-radius: 20px;
+      background: linear-gradient(135deg, #d8b4fe, #a5b4fc);
+      border: none; color: #3b2f4a; font-size: 0.7rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .rating-input {
+      display: flex; gap: 0.15rem; align-items: center;
+      font-size: 1.05rem; color: #e0d4f0;
+    }
+    .rating-input .star-btn {
+      cursor: pointer; background: none; border: none;
+      font-size: 1.05rem; padding: 0; line-height: 1;
+      color: #e0d4f0; transition: color 0.1s;
+    }
+    .rating-input .star-btn.active { color: #f0b860; }
+    .rating-input .star-btn:hover { color: #f5c870; }
+
+    /* UPLOAD PANEL */
+    .upload-panel { padding: 1.8rem 1.6rem; position: sticky; top: 1.5rem; z-index: 3; }
+    .upload-panel h3 { font-size: 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.6rem; }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block; font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #9d8ab0; margin-bottom: 0.35rem; font-weight: 500;
+    }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(200, 180, 230, 0.6);
+      border-radius: 16px; padding: 0.8rem 1rem;
+      font-family: inherit; color: #3b2f4a; font-size: 0.9rem;
+      outline: none; transition: border 0.15s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      border-color: #c4b5fd; box-shadow: 0 0 0 3px rgba(196, 181, 253, 0.3);
+    }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .upload-btn { width: 100%; justify-content: center; padding: 0.9rem; font-weight: 600; margin-top: 0.6rem; }
+    .file-upload-wrapper {
+      position: relative; display: flex; align-items: center; gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px dashed rgba(200, 180, 230, 0.8);
+      border-radius: 16px; padding: 0.7rem 1rem;
+      font-size: 0.82rem; color: #9d8ab0;
+      cursor: pointer; overflow: hidden;
+    }
+    .file-upload-wrapper i { font-size: 1.1rem; color: #c4b5fd; }
+    .file-upload-wrapper input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .file-name {
+      margin-left: auto; font-size: 0.7rem; color: #b8a8c8;
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(200, 180, 230, 0.4);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3000; visibility: hidden; opacity: 0; transition: 0.2s;
+    }
+    .modal-overlay.show { visibility: visible; opacity: 1; }
+    .modal-card {
+      max-width: 400px; width: 90%; padding: 2rem;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 32px; border: 1px solid rgba(255,255,255,0.9);
+      box-shadow: 0 40px 60px -20px rgba(180, 150, 200, 0.4);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1.2rem;
+      background: none; border: none; color: #b8a8c8;
+      font-size: 1.4rem; cursor: pointer; line-height: 1;
+    }
+    .modal-card h2 { margin-bottom: 1.5rem; font-size: 1.3rem; }
+    .modal-card .btn { width: 100%; justify-content: center; margin-top: 0.5rem; }
+    .toggle-auth { text-align: center; margin-top: 1.2rem; font-size: 0.85rem; color: #9d8ab0; }
+    .toggle-auth a { color: #a78bfa; cursor: pointer; text-decoration: underline; font-weight: 500; }
+    .error-msg { color: #f0a0a0; font-size: 0.78rem; margin-top: 0.5rem; display: none; }
+    .loading-spinner {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: #3b2f4a;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-feed {
+      text-align: center; padding: 3rem 2rem; color: #b8a8c8;
+      background: rgba(255,255,255,0.4); border-radius: 32px;
+      border: 1px dashed rgba(200, 180, 230, 0.6);
+    }
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #d8b4fe;
+      padding: 0.8rem 2rem; border-radius: 60px;
+      font-size: 0.88rem; color: #3b2f4a;
+      z-index: 6000;
+      box-shadow: 0 12px 30px rgba(180, 150, 200, 0.3);
+      opacity: 0; transition: opacity 0.2s;
+      pointer-events: none; backdrop-filter: blur(10px);
+    }
+    .toast.show { opacity: 1; }
+    .seed-badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-size: 0.62rem; color: #8b7aa8;
+      background: rgba(255,255,255,0.5); padding: 0.15rem 0.6rem;
+      border-radius: 20px; border: 1px solid rgba(200, 180, 230, 0.4);
+    }
+    .seed-notice {
+      background: rgba(255, 240, 200, 0.6);
+      border: 1px solid rgba(240, 200, 120, 0.6);
+      border-radius: 16px; padding: 0.7rem 1.2rem;
+      font-size: 0.78rem; color: #8a6b30;
+      margin-bottom: 1rem; display: none;
+      align-items: center; gap: 0.5rem;
+    }
+    .seed-notice.show { display: flex; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH WALL -->
+<div class="auth-wall" id="authWall">
+  <div class="auth-wall-card glass-panel">
+    <div class="logo-large">
+      <i class="fas fa-utensils"></i>
+      <span>Gourmet<span class="gradient-text">Voyage</span></span>
+    </div>
+    <p class="subtitle">Sign in to explore & share recipes</p>
+    <h2 id="wallTitle">Welcome back</h2>
+    <form id="wallAuthForm" autocomplete="off">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="wallEmail" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="wallPassword" required placeholder="••••••••">
+      </div>
+      <div id="wallAuthError" class="error-msg"></div>
+      <button type="submit" class="btn btn-primary" id="wallSubmitBtn">Sign in</button>
+    </form>
+    <div class="toggle-auth">
+      <span id="wallToggleText">Don't have an account? </span>
+      <a id="wallToggleLink">Sign up</a>
+    </div>
+  </div>
+</div>
+
+<div class="app-container" id="appContainer" style="display:none;">
+  <header class="app-header glass-panel">
+    <div class="logo">
+      <i class="fas fa-utensils"></i>
+      <span>Gourmet<span class="gradient-text">Voyage</span></span>
+    </div>
+    <div class="auth-area" id="authArea"></div>
+  </header>
+
+  <nav class="cuisine-ribbon glass-panel">
+    <div class="cuisine-tabs" id="cuisineTabs">
+      <span class="cuisine-tab active" data-cuisine="all">All cuisines</span>
+      <span class="cuisine-tab" data-cuisine="Italian">Italian</span>
+      <span class="cuisine-tab" data-cuisine="Japanese">Japanese</span>
+      <span class="cuisine-tab" data-cuisine="Mexican">Mexican</span>
+      <span class="cuisine-tab" data-cuisine="Indian">Indian</span>
+      <span class="cuisine-tab" data-cuisine="French">French</span>
+      <span class="cuisine-tab" data-cuisine="Mediterranean">Mediterranean</span>
+    </div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search recipes...">
+      <button id="searchBtn" type="button"><i class="fas fa-search"></i></button>
+    </div>
+  </nav>
+
+  <div id="seedNotice" class="seed-notice">
+    <i class="fas fa-info-circle"></i>
+    <span>Showing trusted recipes from local cache. Firestore writes are blocked — check your rules.</span>
+  </div>
+
+  <div class="main-grid">
+    <section class="feed-section">
+      <div class="section-title">
+        <h2 class="gradient-text" id="feedHeading">Discover recipes</h2>
+        <span style="font-size:0.82rem; color:#a090b8;" id="recipeCount"></span>
+      </div>
+      <div id="recipeContainer" class="recipe-grid"></div>
+    </section>
+
+    <aside class="upload-panel glass-panel">
+      <h3><i class="fas fa-cloud-upload-alt" style="color:#c4b5fd;"></i> Share a recipe</h3>
+      <form id="uploadForm" autocomplete="off">
+        <div class="form-group">
+          <label>Recipe name</label>
+          <input type="text" id="recipeName" placeholder="e.g. Spaghetti Carbonara" required>
+        </div>
+        <div class="form-group">
+          <label>Cuisine</label>
+          <select id="recipeCuisine">
+            <option value="Italian">Italian</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Mexican">Mexican</option>
+            <option value="Indian">Indian</option>
+            <option value="French">French</option>
+            <option value="Mediterranean">Mediterranean</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Short description</label>
+          <input type="text" id="recipeDesc" placeholder="A brief intro..." maxlength="120">
+        </div>
+        <div class="form-group">
+          <label>Ingredients (one per line)</label>
+          <textarea id="recipeIngredients" placeholder="200g spaghetti&#10;2 eggs&#10;50g pecorino..." rows="4"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Instructions (one step per line)</label>
+          <textarea id="recipeInstructions" placeholder="Boil pasta...&#10;Fry guanciale...&#10;Mix eggs and cheese..." rows="5"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Picture (URL)</label>
+          <input type="url" id="recipeImageUrl" placeholder="https://... (optional)">
+        </div>
+        <div class="form-group">
+          <label>Or upload image</label>
+          <div class="file-upload-wrapper">
+            <i class="fas fa-image"></i>
+            <span>Choose file</span>
+            <span class="file-name" id="fileName">none</span>
+            <input type="file" id="recipeImageFile" accept="image/*">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary upload-btn" id="uploadBtn">
+          <i class="fas fa-arrow-up"></i> Publish recipe
+        </button>
+        <div id="uploadError" class="error-msg"></div>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<!-- Auth modal (secondary) -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal-card glass-panel">
+    <button class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>
+    <h2 id="authTitle" class="gradient-text">Sign in</h2>
+    <form id="authForm" autocomplete="off">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="authEmail" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" required>
+      </div>
+      <div id="authError" class="error-msg"></div>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn">Sign in</button>
+    </form>
+    <div class="toggle-auth">
+      <span id="toggleAuthText">Don't have an account? </span>
+      <a id="toggleAuthLink">Sign up</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "firebase/app";
+  import { getAnalytics } from "firebase/analytics";
+  import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    signOut, onAuthStateChanged
+  } from "firebase/auth";
+  import {
+    getFirestore, collection, addDoc, query, orderBy, onSnapshot,
+    serverTimestamp, doc, updateDoc, arrayUnion, getDoc, getDocs, where
+  } from "firebase/firestore";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBG9OrDmobsFo_RM9VtN0yipA-MhU3UiWY",
+    authDomain: "recipe-website-57061.firebaseapp.com",
+    projectId: "recipe-website-57061",
+    storageBucket: "recipe-website-57061.firebasestorage.app",
+    messagingSenderId: "184041082947",
+    appId: "1:184041082947:web:be1edb295f20df2cd0c4f6",
+    measurementId: "G-1W61D5L0W2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  getAnalytics(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ============================================================
+  // TRUSTED SEED RECIPES — full ingredients + step-by-step
+  // ============================================================
+  const SEED_RECIPES = [
+    {
+      name: 'Spaghetti alla Carbonara',
+      cuisine: 'Italian',
+      description: 'The authentic Roman pasta — silky egg-and-cheese sauce, crisp guanciale, no cream. Adapted from The Silver Spoon (Il Cucchiaio d\'Argento).',
+      ingredients: [
+        '400 g spaghetti (or rigatoni)',
+        '150 g guanciale (or pancetta), cut into strips',
+        '4 large egg yolks + 1 whole egg',
+        '100 g Pecorino Romano, finely grated',
+        '50 g Parmigiano Reggiano, finely grated',
+        'Freshly ground black pepper, to taste',
+        'Coarse salt for the pasta water'
+      ],
+      instructions: [
+        'Bring a large pot of salted water to a boil for the pasta.',
+        'While the water heats, fry the guanciale in a dry pan over medium heat until the fat renders and the pieces are golden and crisp (8–10 min). Turn off the heat.',
+        'In a bowl, whisk together the egg yolks, whole egg, Pecorino, Parmigiano, and a generous amount of black pepper until you have a thick paste.',
+        'Cook the spaghetti until al dente. Reserve 1 cup of pasta water, then drain.',
+        'Add the hot pasta to the pan with the guanciale (off the heat) and toss well.',
+        'Add the egg-and-cheese mixture and toss vigorously, loosening with splashes of pasta water until the sauce is creamy and coats every strand. Do not return to direct heat or the eggs will scramble.',
+        'Serve immediately with extra Pecorino and black pepper.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=800&auto=format',
+      source: 'The Silver Spoon (Il Cucchiaio d\'Argento), Phaidon Press'
+    },
+    {
+      name: 'Yokohama-Style Ramen (Iekei)',
+      cuisine: 'Japanese',
+      description: 'Rich pork-and-chicken shoyu ramen from Yokohama — creamy tonkotsu base, sharp shoyu tare, garlic oil, and chewy noodles. Adapted from TasteAtlas.',
+      ingredients: [
+        '1 kg pork trotters, split',
+        '1 whole chicken carcass',
+        '2 onions, halved',
+        '1 head garlic, halved',
+        '50 g ginger, sliced',
+        '3 L water',
+        '— For the tare —',
+        '120 ml dark soy sauce',
+        '60 ml light soy sauce',
+        '60 ml water',
+        '1 tsp salt',
+        '— To serve —',
+        '4 portions fresh alkaline ramen noodles',
+        '4 tbsp garlic oil (mayu)',
+        '4 slices chashu pork',
+        '4 sheets nori',
+        '1 bunch spinach, blanched',
+        '4 spring onions, sliced'
+      ],
+      instructions: [
+        'Blanch the pork trotters and chicken carcass in boiling water for 5 minutes, then drain and rinse to remove scum.',
+        'Place the blanched bones in a large pot with the onions, garlic, ginger, and 3 L water. Bring to a boil, then reduce to a rolling simmer.',
+        'Simmer uncovered for 10–12 hours, topping up with hot water to keep the bones covered. The broth should turn milky and opaque. Strain through a fine sieve.',
+        'Make the tare: combine both soy sauces, water, and salt in a small saucepan and warm gently. Do not boil.',
+        'Cook the ramen noodles in boiling water according to the package (usually 2–3 minutes). Drain well.',
+        'For each bowl: add 3 tbsp tare and 1 tbsp garlic oil, then ladle in 350 ml hot broth. Stir.',
+        'Add the noodles, then top with chashu, spinach, nori, and spring onions. Serve immediately.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&auto=format',
+      source: 'TasteAtlas — Yokohama-Style Ramen'
+    },
+    {
+      name: 'Mole Poblano de Guajolote',
+      cuisine: 'Mexican',
+      description: 'Puebla\'s legendary sauce — over 20 ingredients including dried chiles, nuts, spices, and chocolate, simmered into a deep, complex sauce for poached turkey or chicken. Adapted from Honest Cooking.',
+      ingredients: [
+        '— The chiles —',
+        '4 mulato chiles',
+        '4 pasilla chiles',
+        '4 ancho chiles',
+        '— The nuts & seeds —',
+        '40 g almonds',
+        '40 g peanuts',
+        '30 g sesame seeds',
+        '30 g pumpkin seeds',
+        '— The aromatics —',
+        '1 onion, charred',
+        '6 garlic cloves, charred',
+        '4 tomatoes, charred',
+        '1 stale tortilla, toasted',
+        '1 bolillo roll, toasted',
+        '— The spices —',
+        '1 tsp cumin',
+        '1 tsp dried oregano',
+        '4 cloves',
+        '1 cinnamon stick',
+        '4 peppercorns',
+        '— The finish —',
+        '80 g Mexican chocolate (or dark chocolate)',
+        '2 tbsp lard or oil',
+        '2 tbsp sugar',
+        'Salt to taste',
+        '1.5 L chicken stock',
+        '1 whole poached chicken or turkey, to serve'
+      ],
+      instructions: [
+        'Toast the dried chiles briefly in a dry pan (30 seconds per side — do not burn or they turn bitter). Soak in hot water for 20 minutes, then drain.',
+        'Toast the almonds, peanuts, sesame seeds, and pumpkin seeds in the same pan until golden. Set aside.',
+        'Char the onion, garlic, and tomatoes on a dry comal or under a broiler until blackened in spots.',
+        'Toast the tortilla and bolillo until crisp, then tear into pieces.',
+        'Working in batches, blend the chiles, nuts, seeds, aromatics, bread, spices, and enough stock to make a smooth paste. Strain through a fine sieve.',
+        'Heat the lard in a large pot. Fry the mole paste for 10 minutes, stirring constantly — it will darken and thicken.',
+        'Add the remaining stock, chocolate, sugar, and salt. Simmer gently for 45 minutes, stirring occasionally, until the sauce coats a spoon.',
+        'Serve ladled over poached chicken or turkey with rice and warm tortillas.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1613514785940-daed07799d9b?w=800&auto=format',
+      source: 'Honest Cooking — Mole Poblano'
+    },
+    {
+      name: 'Butter Chicken (Murgh Makhani)',
+      cuisine: 'Indian',
+      description: 'Delhi\'s velvety tomato-cream chicken, invented at Moti Mahal. Tandoori-style chicken simmered in a buttery, mildly spiced tomato gravy. Adapted from TasteAtlas.',
+      ingredients: [
+        '— Marinade —',
+        '800 g boneless chicken thighs, cut into pieces',
+        '150 g full-fat yogurt',
+        '2 tbsp ginger-garlic paste',
+        '1 tsp Kashmiri chili powder',
+        '1 tsp garam masala',
+        '1 tsp salt',
+        '1 tbsp lemon juice',
+        '— Gravy —',
+        '4 tbsp butter',
+        '1 large onion, finely chopped',
+        '2 tbsp ginger-garlic paste',
+        '500 g tomato purée (or 6 ripe tomatoes, blended)',
+        '1 tsp cumin seeds',
+        '1 tsp Kashmiri chili powder',
+        '1 tsp garam masala',
+        '1 tsp sugar',
+        '200 ml heavy cream',
+        '2 green chilies, slit',
+        '1 tbsp dried fenugreek leaves (kasuri methi)',
+        'Salt to taste',
+        'Fresh coriander to garnish'
+      ],
+      instructions: [
+        'Marinate the chicken: mix yogurt, ginger-garlic paste, chili, garam masala, salt, and lemon juice. Coat the chicken and refrigerate at least 6 hours (overnight is best).',
+        'Roast the marinated chicken in a 200°C oven for 15–20 minutes, or grill until charred at the edges and just cooked through. Set aside.',
+        'Melt 2 tbsp butter in a heavy pan. Add cumin seeds and onion; cook until golden (8–10 min).',
+        'Add ginger-garlic paste and cook 1 minute. Add tomato purée, chili, garam masala, sugar, and salt. Simmer 15 minutes until the sauce thickens and darkens.',
+        'Blend the gravy smooth (optional, for a silkier texture), then return to the pan.',
+        'Add the roasted chicken, remaining butter, cream, green chilies, and crushed kasuri methi. Simmer 10 minutes.',
+        'Garnish with coriander and serve with naan or basmati rice.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=800&auto=format',
+      source: 'TasteAtlas — Butter Chicken (Moti Mahal, Delhi)'
+    },
+    {
+      name: 'Coq au Vin',
+      cuisine: 'French',
+      description: 'Burgundy\'s classic chicken braise — chicken slowly cooked in red wine with bacon, mushrooms, and pearl onions. Adapted from BBC Woman\'s Hour.',
+      ingredients: [
+        '1 whole chicken, jointed into 8 pieces',
+        '50 g butter',
+        '150 g smoked bacon lardons',
+        '12 pearl onions (or small shallots)',
+        '2 garlic cloves, crushed',
+        '2 tbsp plain flour',
+        '750 ml red Burgundy (or Pinot Noir)',
+        '300 ml chicken stock',
+        '2 bay leaves',
+        '4 sprigs fresh thyme',
+        '250 g button mushrooms',
+        '2 tbsp brandy (optional)',
+        'Salt and freshly ground black pepper',
+        'Chopped parsley, to garnish'
+      ],
+      instructions: [
+        'Season the chicken pieces with salt and pepper. Melt the butter in a large casserole and brown the chicken on all sides. Remove and set aside.',
+        'In the same pan, fry the bacon lardons and pearl onions until golden. Add the garlic and cook 30 seconds.',
+        'Return the chicken to the pan. If using brandy, pour it in and carefully ignite to burn off the alcohol.',
+        'Sprinkle over the flour and stir to coat. Cook 1 minute.',
+        'Pour in the red wine and stock. Add the bay leaves and thyme. Bring to a simmer, cover, and cook gently for 40 minutes.',
+        'Add the mushrooms and continue cooking uncovered for 15–20 minutes until the sauce has reduced and thickened.',
+        'Taste and adjust seasoning. Scatter with parsley and serve with mashed potatoes or crusty bread.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=800&auto=format',
+      source: 'BBC Woman\'s Hour — Coq au Vin'
+    },
+    {
+      name: 'Moussaka',
+      cuisine: 'Mediterranean',
+      description: 'Greece\'s layered eggplant casserole — fried eggplant, cinnamon-scented meat sauce, and a thick béchamel. Adapted from Chef Diane Kochilas.',
+      ingredients: [
+        '— Eggplant layer —',
+        '3 large eggplants, sliced 1 cm thick',
+        'Olive oil for frying',
+        'Salt',
+        '— Meat sauce —',
+        '500 g ground beef (or lamb)',
+        '1 large onion, finely chopped',
+        '2 garlic cloves, minced',
+        '400 g canned chopped tomatoes',
+        '2 tbsp tomato paste',
+        '120 ml red wine',
+        '1 cinnamon stick',
+        '2 cloves',
+        '1 tsp dried oregano',
+        'Salt and pepper',
+        '— Béchamel —',
+        '80 g butter',
+        '80 g plain flour',
+        '800 ml whole milk, warmed',
+        '2 egg yolks',
+        'Pinch of nutmeg',
+        '80 g Kefalotyri or Parmesan, grated',
+        'Salt and pepper'
+      ],
+      instructions: [
+        'Salt the eggplant slices and let them drain for 30 minutes. Pat dry, then fry in olive oil until golden on both sides. Drain on paper towels.',
+        'Make the meat sauce: brown the beef in a dry pan, then add the onion and garlic and cook until soft.',
+        'Add the wine and let it reduce, then add the tomatoes, tomato paste, cinnamon, cloves, oregano, salt, and pepper. Simmer 30 minutes until thick.',
+        'Make the béchamel: melt the butter, whisk in the flour, and cook 1 minute. Gradually whisk in the warm milk until smooth. Simmer 5 minutes until thick.',
+        'Off the heat, whisk in the egg yolks, nutmeg, half the cheese, and seasoning.',
+        'Preheat the oven to 180°C. In a deep baking dish, layer half the eggplant, all the meat sauce, the remaining eggplant, and finally the béchamel. Sprinkle with the remaining cheese.',
+        'Bake 45–50 minutes until golden and bubbling. Rest 20 minutes before slicing.'
+      ],
+      imageUrl: 'https://images.unsplash.com/photo-1574484284002-952d92456975?w=800&auto=format',
+      source: 'Chef Diane Kochilas — Moussaka'
+    }
+  ];
+
+  // ---------- STATE ----------
+  let currentUser = null;
+  let currentCuisine = 'all';
+  let searchTerm = '';
+  let allRecipes = [];
+  let uploadedImageData = null;
+  let wallAuthMode = 'signin';
+  let modalAuthMode = 'signin';
+  let pendingRating = {};
+  let seedNoticeShown = false;
+
+  // DOM refs
+  const authWall = document.getElementById('authWall');
+  const appContainer = document.getElementById('appContainer');
+  const wallAuthForm = document.getElementById('wallAuthForm');
+  const wallEmail = document.getElementById('wallEmail');
+  const wallPassword = document.getElementById('wallPassword');
+  const wallAuthError = document.getElementById('wallAuthError');
+  const wallSubmitBtn = document.getElementById('wallSubmitBtn');
+  const wallTitle = document.getElementById('wallTitle');
+  const wallToggleText = document.getElementById('wallToggleText');
+  const wallToggleLink = document.getElementById('wallToggleLink');
+
+  const authArea = document.getElementById('authArea');
+  const authModal = document.getElementById('authModal');
+  const authTitle = document.getElementById('authTitle');
+  const authForm = document.getElementById('authForm');
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  const authError = document.getElementById('authError');
+  const authSubmitBtn = document.getElementById('authSubmitBtn');
+  const toggleAuthText = document.getElementById('toggleAuthText');
+  const toggleAuthLink = document.getElementById('toggleAuthLink');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+  const recipeContainer = document.getElementById('recipeContainer');
+  const feedHeading = document.getElementById('feedHeading');
+  const recipeCount = document.getElementById('recipeCount');
+  const uploadForm = document.getElementById('uploadForm');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const uploadError = document.getElementById('uploadError');
+  const recipeImageFile = document.getElementById('recipeImageFile');
+  const fileNameSpan = document.getElementById('fileName');
+  const toastEl = document.getElementById('toast');
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const cuisineTabs = document.getElementById('cuisineTabs');
+  const seedNotice = document.getElementById('seedNotice');
+
+  // ---------- HELPERS ----------
+  function showToast(msg, isError = false) {
+    toastEl.textContent = msg;
+    toastEl.style.borderColor = isError ? '#f0a0a0' : '#d8b4fe';
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 3000);
+  }
+  function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return String(unsafe)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  function starsHtml(avg, count) {
+    const full = Math.round(avg);
+    let s = '';
+    for (let i = 0; i < 5; i++) s += i < full ? '★' : '☆';
+    return `<span class="stars">${s}</span><span class="count">(${count})</span>`;
+  }
+  function toArrayLines(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return String(val).split('\n').map(s => s.trim()).filter(Boolean);
+  }
+
+  // ---------- AUTH WALL ----------
+  function setWallMode(mode) {
+    wallAuthMode = mode;
+    if (mode === 'signin') {
+      wallTitle.textContent = 'Welcome back';
+      wallSubmitBtn.textContent = 'Sign in';
+      wallToggleText.textContent = "Don't have an account? ";
+      wallToggleLink.textContent = 'Sign up';
+    } else {
+      wallTitle.textContent = 'Create your account';
+      wallSubmitBtn.textContent = 'Sign up';
+      wallToggleText.textContent = 'Already have an account? ';
+      wallToggleLink.textContent = 'Sign in';
+    }
+    wallAuthError.style.display = 'none';
+  }
+  wallToggleLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    setWallMode(wallAuthMode === 'signin' ? 'signup' : 'signin');
+  });
+  wallAuthForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    wallAuthError.style.display = 'none';
+    const email = wallEmail.value.trim();
+    const password = wallPassword.value;
+    if (!email || !password) return;
+    wallSubmitBtn.disabled = true;
+    wallSubmitBtn.innerHTML = '<span class="loading-spinner"></span>';
+    try {
+      if (wallAuthMode === 'signin') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      wallAuthForm.reset();
+    } catch (error) {
+      wallAuthError.textContent = error.message.replace('Firebase:', '').trim();
+      wallAuthError.style.display = 'block';
+    } finally {
+      wallSubmitBtn.disabled = false;
+      wallSubmitBtn.textContent = wallAuthMode === 'signin' ? 'Sign in' : 'Sign up';
+    }
+  });
+
+  // ---------- MODAL AUTH ----------
+  function setModalMode(mode) {
+    modalAuthMode = mode;
+    if (mode === 'signin') {
+      authTitle.textContent = 'Sign in';
+      authSubmitBtn.textContent = 'Sign in';
+      toggleAuthText.textContent = "Don't have an account? ";
+      toggleAuthLink.textContent = 'Sign up';
+    } else {
+      authTitle.textContent = 'Create account';
+      authSubmitBtn.textContent = 'Sign up';
+      toggleAuthText.textContent = 'Already have an account? ';
+      toggleAuthLink.textContent = 'Sign in';
+    }
+    authError.style.display = 'none';
+  }
+  toggleAuthLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    setModalMode(modalAuthMode === 'signin' ? 'signup' : 'signin');
+  });
+  modalCloseBtn.addEventListener('click', () => authModal.classList.remove('show'));
+  authModal.addEventListener('click', (e) => {
+    if (e.target === authModal) authModal.classList.remove('show');
+  });
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authError.style.display = 'none';
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    if (!email || !password) return;
+    authSubmitBtn.disabled = true;
+    authSubmitBtn.innerHTML = '<span class="loading-spinner"></span>';
+    try {
+      if (modalAuthMode === 'signin') {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      authModal.classList.remove('show');
+      authForm.reset();
+    } catch (error) {
+      authError.textContent = error.message.replace('Firebase:', '').trim();
+      authError.style.display = 'block';
+    } finally {
+      authSubmitBtn.disabled = false;
+      authSubmitBtn.textContent = modalAuthMode === 'signin' ? 'Sign in' : 'Sign up';
+    }
+  });
+
+  // ---------- AUTH STATE ----------
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    if (user) {
+      authWall.classList.add('hidden');
+      appContainer.style.display = 'block';
+      authArea.innerHTML = `
+        <div class="user-badge"><i class="fas fa-user-circle"></i> ${escapeHtml(user.email.split('@')[0])}</div>
+        <button class="btn" id="logoutBtn" type="button"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      `;
+      // Seed AFTER auth, then load
+      await seedRecipesIfNeeded();
+      loadRecipes();
+    } else {
+      authWall.classList.remove('hidden');
+      appContainer.style.display = 'none';
+      authArea.innerHTML = '';
+    }
+  });
+  authArea.addEventListener('click', (e) => {
+    if (e.target.closest('#logoutBtn')) signOut(auth);
+  });
+
+  // ---------- SEED (idempotent, falls back to local) ----------
+  async function seedRecipesIfNeeded() {
+    try {
+      const seedCheck = await getDocs(
+        query(collection(db, 'recipes'), where('authorId', '==', 'seed-system'))
+      );
+      if (!seedCheck.empty) {
+        console.log('Seed recipes already present — skipping.');
+        return;
+      }
+      for (const recipe of SEED_RECIPES) {
+        await addDoc(collection(db, 'recipes'), {
+          name: recipe.name,
+          cuisine: recipe.cuisine,
+          description: recipe.description,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          imageUrl: recipe.imageUrl,
+          source: recipe.source,
+          authorEmail: 'curator@gourmetvoyage.app',
+          authorId: 'seed-system',
+          ratingSum: 0,
+          ratingCount: 0,
+          comments: [],
+          isSeed: true,
+          createdAt: serverTimestamp()
+        });
+      }
+      showToast('Trusted recipes loaded!');
+    } catch (e) {
+      console.warn('Seed skipped (rules?):', e.message);
+      // Fall back to local rendering so user still sees recipes
+      if (!seedNoticeShown) {
+        seedNoticeShown = true;
+        seedNotice.classList.add('show');
+      }
+    }
+  }
+
+  // Build local fallback recipes from SEED_RECIPES
+  function getLocalFallbackRecipes() {
+    return SEED_RECIPES.map((r, i) => ({
+      id: 'local-seed-' + i,
+      ...r,
+      authorEmail: 'curator@gourmetvoyage.app',
+      authorId: 'seed-system',
+      ratingSum: 0, ratingCount: 0, comments: [], isSeed: true
+    }));
+  }
+
+  // ---------- RECIPES ----------
+  const recipesRef = collection(db, 'recipes');
+
+  function loadRecipes() {
+    const q = query(recipesRef, orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      allRecipes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // If Firestore has no seed recipes (or blocked), merge in local fallback
+      const hasSeed = allRecipes.some(r => r.authorId === 'seed-system');
+      if (!hasSeed) {
+        allRecipes = [...allRecipes, ...getLocalFallbackRecipes()];
+      }
+      renderRecipes();
+    }, (error) => {
+      console.error('Snapshot error:', error);
+      // Even if blocked, show local recipes
+      allRecipes = getLocalFallbackRecipes();
+      renderRecipes();
+      if (!seedNoticeShown) {
+        seedNoticeShown = true;
+        seedNotice.classList.add('show');
+      }
+    });
+  }
+
+  function renderRecipes() {
+    let filtered = allRecipes;
+    if (currentCuisine !== 'all') filtered = filtered.filter(r => r.cuisine === currentCuisine);
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(r =>
+        (r.name && r.name.toLowerCase().includes(term)) ||
+        (r.description && r.description.toLowerCase().includes(term)) ||
+        (Array.isArray(r.ingredients) && r.ingredients.join(' ').toLowerCase().includes(term))
+      );
+    }
+
+    feedHeading.textContent = currentCuisine === 'all' ? 'Discover recipes' : `${currentCuisine} recipes`;
+    recipeCount.textContent = filtered.length ? `${filtered.length} recipe${filtered.length > 1 ? 's' : ''}` : '';
+
+    if (filtered.length === 0) {
+      recipeContainer.innerHTML = `
+        <div class="empty-feed" style="grid-column:1/-1;">
+          <i class="fas fa-utensils" style="font-size:2.5rem; margin-bottom:1rem; opacity:0.4;"></i>
+          <p>No recipes found. Be the first to share one!</p>
+        </div>`;
+      return;
+    }
+
+    recipeContainer.innerHTML = filtered.map(recipe => {
+      const imgUrl = recipe.imageUrl || '';
+      const bgStyle = imgUrl ? `style="background-image: url('${imgUrl}');"` : '';
+      const placeholderClass = imgUrl ? '' : 'recipe-img-placeholder';
+      const placeholderIcon = imgUrl ? '' : '<i class="fas fa-utensils"></i>';
+      const author = recipe.authorEmail ? recipe.authorEmail.split('@')[0] : 'anonymous';
+      const avg = recipe.ratingCount > 0 ? (recipe.ratingSum / recipe.ratingCount) : 0;
+      const ratingStars = starsHtml(avg, recipe.ratingCount || 0);
+      const comments = Array.isArray(recipe.comments) ? recipe.comments : [];
+      const commentsPreview = comments.slice(-2).map(c =>
+        `<div class="comment-item"><span class="c-author">${escapeHtml(c.author)}</span> <span class="c-text">${escapeHtml(c.text)}</span></div>`
+      ).join('');
+      const seedBadge = recipe.isSeed ? '<span class="seed-badge"><i class="fas fa-check-circle"></i> trusted</span>' : '';
+      const rid = escapeHtml(recipe.id);
+
+      let starsInput = '<div class="rating-input" data-recipe-id="' + rid + '">';
+      for (let i = 1; i <= 5; i++) {
+        starsInput += `<button type="button" class="star-btn" data-star="${i}" data-recipe-id="${rid}">★</button>`;
+      }
+      starsInput += '</div>';
+
+      // Ingredients & instructions
+      const ingredients = toArrayLines(recipe.ingredients);
+      const instructions = toArrayLines(recipe.instructions);
+      const ingredientsHtml = ingredients.length
+        ? '<ul>' + ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>'
+        : '<p style="color:#a090b8;">No ingredients listed.</p>';
+      const instructionsHtml = instructions.length
+        ? '<ol>' + instructions.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ol>'
+        : '<p style="color:#a090b8;">No instructions listed.</p>';
+      const sourceHtml = recipe.source
+        ? `<div class="source-credit"><i class="fas fa-book-open"></i> Source: ${escapeHtml(recipe.source)}</div>`
+        : '';
+
+      return `
+        <div class="recipe-card" data-recipe-id="${rid}">
+          <div class="recipe-img ${placeholderClass}" ${bgStyle}>${placeholderIcon}</div>
+          <div class="recipe-title">
+            <span>${escapeHtml(recipe.name || 'Untitled')}</span>
+            <span class="cuisine-badge">${escapeHtml(recipe.cuisine || 'Other')}</span>
+          </div>
+          <div class="recipe-desc">${escapeHtml(recipe.description || 'No description')}</div>
+          <div class="recipe-meta">
+            <span><i class="far fa-user"></i> ${escapeHtml(author)} ${seedBadge}</span>
+            <span class="recipe-rating">${ratingStars}</span>
+          </div>
+          <button class="recipe-detail-toggle" data-recipe-id="${rid}">
+            <i class="fas fa-book-open"></i> View ingredients & steps
+          </button>
+          <div class="recipe-detail" id="detail-${rid}">
+            <h4><i class="fas fa-shopping-basket"></i> Ingredients</h4>
+            ${ingredientsHtml}
+            <h4><i class="fas fa-list-ol"></i> Instructions</h4>
+            ${instructionsHtml}
+            ${sourceHtml}
+          </div>
+          <div class="recipe-actions">
+            ${starsInput}
+            <button class="btn-small rate-submit" data-recipe-id="${rid}">Rate</button>
+          </div>
+          ${commentsPreview ? `<div class="recipe-comments-preview">${commentsPreview}</div>` : ''}
+          <form class="comment-form-inline" data-recipe-id="${rid}">
+            <input type="text" placeholder="Add a comment..." maxlength="140" required>
+            <button type="submit">Post</button>
+          </form>
+        </div>`;
+    }).join('');
+  }
+
+  // ---------- DETAIL TOGGLE / RATING / COMMENTS ----------
+  recipeContainer.addEventListener('click', async (e) => {
+    // Detail toggle
+    const toggle = e.target.closest('.recipe-detail-toggle');
+    if (toggle) {
+      const rid = toggle.dataset.recipeId;
+      const detail = document.getElementById('detail-' + rid);
+      if (detail) {
+        detail.classList.toggle('open');
+        toggle.innerHTML = detail.classList.contains('open')
+          ? '<i class="fas fa-chevron-up"></i> Hide ingredients & steps'
+          : '<i class="fas fa-book-open"></i> View ingredients & steps';
+      }
+      return;
+    }
+
+    // Star click
+    const starBtn = e.target.closest('.star-btn');
+    if (starBtn) {
+      const rid = starBtn.dataset.recipeId;
+      const val = parseInt(starBtn.dataset.star, 10);
+      pendingRating[rid] = val;
+      document.querySelectorAll(`.rating-input[data-recipe-id="${rid}"] .star-btn`).forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.star, 10) <= val);
+      });
+      return;
+    }
+
+    // Rate submit
+    const rateBtn = e.target.closest('.rate-submit');
+    if (rateBtn) {
+      if (!currentUser) { showToast('Sign in to rate', true); return; }
+      const rid = rateBtn.dataset.recipeId;
+      const stars = pendingRating[rid];
+      if (!stars) { showToast('Select stars first', true); return; }
+      // Local-only for fallback recipes
+      if (rid.startsWith('local-seed-') || rid.startsWith('seed-')) {
+        const local = allRecipes.find(r => r.id === rid);
+        if (local) {
+          local.ratingSum = (local.ratingSum || 0) + stars;
+          local.ratingCount = (local.ratingCount || 0) + 1;
+          delete pendingRating[rid];
+          renderRecipes();
+          showToast(`Rated ${stars} ★ (local)`);
+        }
+        return;
+      }
+      try {
+        const recipeRef = doc(db, 'recipes', rid);
+        const snap = await getDoc(recipeRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        await updateDoc(recipeRef, {
+          ratingSum: (data.ratingSum || 0) + stars,
+          ratingCount: (data.ratingCount || 0) + 1
+        });
+        delete pendingRating[rid];
+        showToast(`Rated ${stars} ★`);
+      } catch (err) {
+        showToast('Could not rate', true);
+      }
+    }
+  });
+
+  recipeContainer.addEventListener('submit', async (e) => {
+    const form = e.target.closest('.comment-form-inline');
+    if (!form) return;
+    e.preventDefault();
+    if (!currentUser) { showToast('Sign in to comment', true); return; }
+    const rid = form.dataset.recipeId;
+    const input = form.querySelector('input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Local fallback
+    if (rid.startsWith('local-seed-') || rid.startsWith('seed-')) {
+      const local = allRecipes.find(r => r.id === rid);
+      if (local) {
+        if (!Array.isArray(local.comments)) local.comments = [];
+        local.comments.push({ author: currentUser.email.split('@')[0], text, at: Date.now() });
+        input.value = '';
+        renderRecipes();
+        showToast('Comment added (local)');
+      }
+      return;
+    }
+
+    try {
+      const recipeRef = doc(db, 'recipes', rid);
+      await updateDoc(recipeRef, {
+        comments: arrayUnion({
+          author: currentUser.email.split('@')[0],
+          text, at: Date.now()
+        })
+      });
+      input.value = '';
+      showToast('Comment added');
+    } catch (err) {
+      showToast('Could not comment', true);
+    }
+  });
+
+  // ---------- UPLOAD ----------
+  recipeImageFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) { fileNameSpan.textContent = 'none'; uploadedImageData = null; return; }
+    fileNameSpan.textContent = file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name;
+    const reader = new FileReader();
+    reader.onload = (ev) => { uploadedImageData = ev.target.result; };
+    reader.readAsDataURL(file);
+  });
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    uploadError.style.display = 'none';
+    if (!currentUser) { showToast('Sign in to share', true); return; }
+
+    const name = document.getElementById('recipeName').value.trim();
+    const cuisine = document.getElementById('recipeCuisine').value;
+    const description = document.getElementById('recipeDesc').value.trim();
+    const ingredientsRaw = document.getElementById('recipeIngredients').value;
+    const instructionsRaw = document.getElementById('recipeInstructions').value;
+    const imageUrl = document.getElementById('recipeImageUrl').value.trim();
+
+    if (!name) {
+      uploadError.textContent = 'Recipe name is required';
+      uploadError.style.display = 'block';
+      return;
+    }
+
+    let finalImageUrl = imageUrl;
+    if (uploadedImageData) finalImageUrl = uploadedImageData;
+
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="loading-spinner"></span> Publishing...';
+
+    try {
+      await addDoc(recipesRef, {
+        name, cuisine, description,
+        ingredients: toArrayLines(ingredientsRaw),
+        instructions: toArrayLines(instructionsRaw),
+        imageUrl: finalImageUrl || '',
+        authorEmail: currentUser.email,
+        authorId: currentUser.uid,
+        ratingSum: 0, ratingCount: 0, comments: [],
+        isSeed: false,
+        createdAt: serverTimestamp()
+      });
+      uploadForm.reset();
+      fileNameSpan.textContent = 'none';
+      uploadedImageData = null;
+      showToast('Recipe published! 🎉');
+    } catch (error) {
+      uploadError.textContent = error.message;
+      uploadError.style.display = 'block';
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.innerHTML = '<i class="fas fa-arrow-up"></i> Publish recipe';
+    }
+  });
+
+  // ---------- FILTERS ----------
+  cuisineTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.cuisine-tab');
+    if (!tab) return;
+    document.querySelectorAll('.cuisine-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentCuisine = tab.dataset.cuisine;
+    renderRecipes();
+  });
+  searchInput.addEventListener('input', (e) => {
+    searchTerm = e.target.value;
+    renderRecipes();
+  });
+  searchBtn.addEventListener('click', () => {
+    searchTerm = searchInput.value;
+    renderRecipes();
+  });
+
+  // ---------- INIT ----------
+  setWallMode('signin');
+  setModalMode('signin');
+</script>
+</body>
+</html>
